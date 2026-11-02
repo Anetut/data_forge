@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Data (generated, can be large - regenerate with the generator, never commit)
+data/*
+!data/README.md
+
+# Spark / Delta local artifacts
+spark-warehouse/
+metastore_db/
+derby.log
+checkpoints/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Terraform / infra
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
