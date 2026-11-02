@@ -163,3 +163,15 @@ Rules:
 - Work on short-lived branches (`feat/...`, `fix/...`) and merge to `main` through a pull request, even when working alone; CI must pass.
 - Never commit generated data, `.env`, credentials, notebooks with outputs containing data, or virtualenvs.
 - Non-obvious design decisions get an ADR in `docs/decisions/`.
+
+## 12. Versioning
+
+Official references:
+- [Semantic Versioning](https://semver.org/)
+- [PEP 440 – Version identifiers](https://peps.python.org/pep-0440/)
+
+Rules:
+- The version lives in one place: `__version__` in `src/dataforge/__init__.py`. `pyproject.toml` reads it from there; never edit it anywhere else.
+- Every pull request that changes behaviour, public interfaces, schemas or dependencies bumps the version. Docs-, test- and CI-only changes may leave it unchanged.
+- Follow SemVer: `PATCH` for backwards-compatible fixes, `MINOR` for backwards-compatible features, `MAJOR` for breaking changes (table schemas, public function signatures, API contracts). While the version is `0.x`, breaking changes bump `MINOR`.
+- Releases are tagged `vX.Y.Z` on `main`.

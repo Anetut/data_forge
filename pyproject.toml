@@ -4,7 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dataforge"
-version = "0.1.0"
+# Single source of truth: `__version__` in src/dataforge/__init__.py
+dynamic = ["version"]
 description = "DataForge - an end-to-end e-commerce data processing platform (Python, Spark, Delta Lake, Azure)."
 readme = "README.md"
 # Databricks runtimes ship Python 3.11/3.12, so stay compatible with those.
@@ -39,6 +40,9 @@ services = [
   "fastapi>=0.111",
   "uvicorn[standard]>=0.30",
 ]
+
+[tool.setuptools.dynamic]
+version = { attr = "dataforge.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
