@@ -2,7 +2,7 @@
 
 An end-to-end data processing platform for a simulated e-commerce business. It ingests messy data from several sources, cleans and models it with **PySpark + Delta Lake** in a **Bronze / Silver / Gold** (medallion) layout, and serves it to analytics and operational services. It starts fully local and moves to **Azure Databricks + ADLS Gen2** in later phases.
 
-> Status: **Phase 0 – foundation.** Repo scaffold only; no pipeline code yet.
+> Status: **Phase 1 – operational database.** PostgreSQL schema in place ([`sql/schema.md`](sql/schema.md)); file formats next. No pipeline code yet.
 
 ## Stack
 
@@ -45,6 +45,13 @@ ruff check .
 pytest
 ```
 
+Scripts in `sql/init/` run only when the Postgres volume is empty. After changing them, recreate the database (this deletes local data):
+
+```powershell
+docker compose down -v
+docker compose up -d postgres
+```
+
 Later phases add extras: `pip install -e ".[dev,ingest]"`, `".[dev,spark]"`, `".[dev,services]"`.
 
 ### Prerequisites
@@ -62,4 +69,5 @@ Later phases add extras: `pip install -e ".[dev,ingest]"`, `".[dev,spark]"`, `".
 - [Architecture](docs/architecture.md)
 - [Code conventions](docs/conventions.md)
 - [Roadmap](docs/roadmap.md)
+- [Operational database schema](sql/schema.md)
 - [Architecture decision records](docs/decisions/)
