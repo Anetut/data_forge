@@ -18,3 +18,31 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: pytest -m "not integration"
+
+  sql-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dataforge
+          POSTGRES_PASSWORD: ci_only
+          POSTGRES_DB: dataforge
+        ports:
+          - "5432:5432"
+        options: >-
+          --health-cmd="pg_isready -h localhost -U dataforge -d dataforge"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply SQL init scripts
+        env:
+          PGPASSWORD: ci_only
+        run: |
+          for f in sql/init/*.sql; do
+            echo "Applying $f"
+            psql -h localhost -U dataforge -d dataforge -v ON_ERROR_STOP=1 -f "$f"
+          done
