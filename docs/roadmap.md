@@ -6,8 +6,8 @@ Priority: **core** (required for the platform to work end to end), **supporting*
 
 | Phase | Focus | Priority | Status |
 | --- | --- | --- | --- |
-| 0 | Repo foundation, tooling, CI | core | in progress |
-| 1 | Operational database (PostgreSQL), schema design, file formats (CSV/JSON/Parquet) | core | todo |
+| 0 | Repo foundation, tooling, CI | core | done |
+| 1 | Operational database (PostgreSQL), schema design, file formats (CSV/JSON/Parquet) | core | in progress |
 | 2 | Synthetic data generator and ingestion with validation | core | todo |
 | 3 | Batch processing with PySpark | core | todo |
 | 4 | Databricks and Delta Lake: medallion layers, incremental loads, MERGE | core | todo |
