@@ -2,7 +2,20 @@
 
 An end-to-end data processing platform for a simulated e-commerce business. It ingests messy data from several sources, cleans and models it with **PySpark + Delta Lake** in a **Bronze / Silver / Gold** (medallion) layout, and serves it to analytics and operational services. It starts fully local and moves to **Azure Databricks + ADLS Gen2** in later phases.
 
-> Status: **Phase 1 – operational database.** PostgreSQL schema in place ([`sql/schema.md`](sql/schema.md)); file formats next. No pipeline code yet.
+## Planning
+
+- Step 0: Repo foundation, tooling, CI - DONE
+- Step 1: Operational database (PostgreSQL), schema design, file formats analysis (CSV/JSON/Parquet) - DONE
+- Step 2: Synthetic data generator and ingestion with validation
+- Step 3: Batch processing with PySpark
+- Step 4: Databricks and Delta Lake: medallion layers, incremental loads, MERGE
+- Step 5: End-to-end pipelines: idempotency, retries, orchestration
+- Step 6: Azure: ADLS Gen2, Key Vault, monitoring
+- Step 7: FastAPI services and business events
+- Step 8: Streaming: Event Hubs, Structured Streaming
+- Step 9: Production readiness: tests, data quality, CI/CD
+
+
 
 ## Stack
 
@@ -16,15 +29,20 @@ An end-to-end data processing platform for a simulated e-commerce business. It i
 | Streaming (optional) | Spark Structured Streaming, Azure Event Hubs |
 | Quality | Pytest, Ruff, GitHub Actions |
 
+
+
+
 ## Repository layout
+
+Shared code lives in the installable `dataforge` package under `src/`.  Services, Spark jobs and Databricks assets live in top-level directories and import from that package. Dependencies are split into optional extras per Step in `pyproject.toml`.
 
 ```
 src/dataforge/   Shared Python package (config, logging, ingestion, validation, ...)
-services/        FastAPI microservices (Phase 7)
-spark/           PySpark jobs: bronze / silver / gold (Phase 3+)
-databricks/      Databricks notebooks, job definitions, bundle config (Phase 4+)
+services/        FastAPI microservices (Step 7)
+spark/           PySpark jobs: bronze / silver / gold (Step 3+)
+databricks/      Databricks notebooks, job definitions, bundle config (Step 4+)
 sql/             PostgreSQL schema, init scripts and analytical queries
-infra/           Azure infrastructure definitions (Phase 6)
+infra/           Azure infrastructure definitions (Step 6)
 notebooks/       Local exploration notebooks
 data/            Generated datasets (git-ignored)
 tests/           Unit and integration tests
@@ -36,12 +54,13 @@ docs/            Architecture, conventions, roadmap, ADRs
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
-pip install -e ".[dev]"
+pip install -e ".[dev,ingest]"
 
 copy .env.example .env
 docker compose up -d postgres
 
 ruff check .
+pyright
 pytest
 ```
 
@@ -52,22 +71,19 @@ docker compose down -v
 docker compose up -d postgres
 ```
 
-Later phases add extras: `pip install -e ".[dev,ingest]"`, `".[dev,spark]"`, `".[dev,services]"`.
+Later steps add extras: `pip install -e ".[dev,ingest]"`, `".[dev,spark]"`, `".[dev,services]"`.
 
 ### Prerequisites
 
 - Python 3.11+ (3.12 matches current Databricks runtimes best)
 - Docker Desktop
 - Git
-- **Java 17 or 21** from Phase 3 on (needed by Spark; newer JDKs may not be supported by the pinned PySpark version). If a newer JDK is first on your `PATH`, point Spark at 21 for the current shell:
+- **Java 17 or 21** from Step 3 on (needed by Spark; newer JDKs may not be supported by the pinned PySpark version). If a newer JDK is first on your `PATH`, point Spark at 21 for the current shell:
   ```powershell
   $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.13.9-hotspot"
   ```
 
 ## Documentation
 
-- [Architecture](docs/architecture.md)
-- [Code conventions](docs/conventions.md)
-- [Roadmap](docs/roadmap.md)
-- [Operational database schema](sql/schema.md)
-- [Architecture decision records](docs/decisions/)
+- [SQL Schema](docs/sql-schema.md)
+- [Decision records](docs/decisions.md)

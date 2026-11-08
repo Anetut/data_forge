@@ -1,9 +1,13 @@
 # E-Commerce Schema Design
 
+## Entity relationship diagram
+
+![Entity relationship diagram](sql-schema_entity_relationship.png)
+
 ## Entities
 
-### 1. Manager 
-**Purpose**: Person responsible for a physical location or external contract. 
+### 1. Manager
+**Purpose**: Person responsible for a physical location or external contract.
 
 **Attributes**:
 - id (primary key)
@@ -63,7 +67,7 @@
 
 
 ### 5. Orders
-**Purpose**: Order placed in app by customer 
+**Purpose**: Order placed in app by customer
 
 **Attributes**:
 - id (primary key)
@@ -175,7 +179,7 @@
 - updated_at
 
 
-### 14. Rating 
+### 14. Rating
 **Purpose**: A customer's rating of a purchased order item. Product and seller averages are computed from these rows.
 
 **Attributes**:
@@ -239,7 +243,3 @@
 - Authentication is handled by an external identity provider; credentials are never stored in this database.
 - Only payment-provider tokens are stored for cards; card numbers and CVV are never stored.
 - Sellers are linked to orders through offers only. Payment data is not linked to sellers, and seller payouts are out of scope for now.
-
-## Entity relationship diagram
-
-![Entity relationship diagram](schema_entity_relationship.png)
