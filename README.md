@@ -73,6 +73,16 @@ docker compose up -d postgres
 
 Later steps add extras: `pip install -e ".[dev,ingest]"`, `".[dev,spark]"`, `".[dev,services]"`.
 
+### Synthetic data
+
+```powershell
+python -m dataforge.generator seed       # empty database: reference data + 2 years of orders
+python -m dataforge.generator activity   # one run of changes: status updates, new and late orders, deletes
+python -m dataforge.generator feed       # partner JSON Lines feed in data/feeds/, with a manifest of injected issues
+```
+
+`--seed` fixes the randomness; dates are relative to today. Integration tests run against the same database and roll back: `pytest -m integration`.
+
 ### Prerequisites
 
 - Python 3.11+ (3.12 matches current Databricks runtimes best)
