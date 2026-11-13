@@ -49,6 +49,7 @@ CREATE TABLE credit_card_information(
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX credit_card_information_customer_id_idx ON credit_card_information(customer_id);
 
 CREATE TABLE orders(
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -56,6 +57,7 @@ CREATE TABLE orders(
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX orders_customer_id_idx ON orders(customer_id);
 
 CREATE TABLE warehouse(
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -103,6 +105,7 @@ CREATE TABLE product_item_junction(
     category_id UUID NOT NULL REFERENCES category(id),
     UNIQUE (product_id, category_id)
 );
+CREATE INDEX product_item_junction_category_id_idx ON product_item_junction(category_id);
 
 CREATE TABLE offer(
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -114,6 +117,8 @@ CREATE TABLE offer(
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX offer_seller_id_idx ON offer(seller_id);
+CREATE INDEX offer_product_id_idx ON offer(product_id);
 
 CREATE TABLE inventory(
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -124,6 +129,7 @@ CREATE TABLE inventory(
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (warehouse_id, offer_id)
 );
+CREATE INDEX inventory_offer_id_idx ON inventory(offer_id);
 
 CREATE TABLE order_item(
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -143,6 +149,8 @@ CREATE TABLE order_item(
     CONSTRAINT order_item_delivered_after_shipped
     CHECK (delivered_at >= shipped_at)
 );
+CREATE INDEX order_item_order_id_idx ON order_item(order_id);
+CREATE INDEX order_item_inventory_id_idx ON order_item(inventory_id);
 
 CREATE TABLE rating(
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -168,6 +176,7 @@ CREATE TABLE payment_attempt(
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX payment_attempt_payment_id_idx ON payment_attempt(payment_id);
 
 CREATE FUNCTION set_updated_at() RETURNS trigger AS $$
 BEGIN
