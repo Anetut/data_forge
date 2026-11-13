@@ -189,17 +189,17 @@ CREATE TRIGGER shipping_provider_set_updated_at
 CREATE TRIGGER customer_set_updated_at
     BEFORE UPDATE ON customer
     FOR EACH ROW
-    EXECUTE FUNCTION set_updated_at();   
+    EXECUTE FUNCTION set_updated_at();
 
 CREATE TRIGGER credit_card_information_set_updated_at
     BEFORE UPDATE ON credit_card_information
     FOR EACH ROW
-    EXECUTE FUNCTION set_updated_at();   
+    EXECUTE FUNCTION set_updated_at();
 
 CREATE TRIGGER orders_set_updated_at
     BEFORE UPDATE ON orders
     FOR EACH ROW
-    EXECUTE FUNCTION set_updated_at();   
+    EXECUTE FUNCTION set_updated_at();
 
 CREATE TRIGGER warehouse_set_updated_at
     BEFORE UPDATE ON warehouse
