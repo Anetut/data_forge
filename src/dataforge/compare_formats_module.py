@@ -20,7 +20,8 @@ from dataforge.file_formats.parquet_file import (
     write_parquet,
     write_parquet_file_with_binary_id,
 )
-from dataforge.mock_data_engine import build_order_items
+from dataforge.generator.orders import build_orders
+from dataforge.generator.reference import Volumes, build_reference
 
 SEED = 31
 ROW_COUNT = 100_000
@@ -36,7 +37,10 @@ def main() -> None:
     random_generator = random.Random(SEED)
     date_start = datetime(2020, 1, 1, tzinfo=UTC)
     date_end = datetime(2026, 1, 1, tzinfo=UTC)
-    rows = build_order_items(ROW_COUNT, random_generator, date_start, date_end)
+    reference = build_reference(random_generator, Volumes(), before=date_start)
+    # About 2.2 items per order; cut to exactly ROW_COUNT so results stay comparable.
+    _, items = build_orders(random_generator, reference.sources, ROW_COUNT, date_start, date_end)
+    rows = items[:ROW_COUNT]
     run_csv_comparison(rows)
     run_json_comparison(rows)
     run_parquet_comparison(rows)

@@ -8,7 +8,8 @@ import pytest
 
 from dataforge.domain.enums import OrderStatus
 from dataforge.domain.order_item_row import OrderItemRow
-from dataforge.mock_data_engine import build_order_items
+from dataforge.generator.orders import build_orders
+from dataforge.generator.reference import Volumes, build_reference
 
 DATE_START = datetime(2020, 1, 1, tzinfo=UTC)
 DATE_END = datetime(2026, 1, 1, tzinfo=UTC)
@@ -26,7 +27,9 @@ def project_root(pytestconfig) -> Path:
 
 @pytest.fixture
 def items(rng):
-    return build_order_items(500, rng, DATE_START, DATE_END)
+    reference = build_reference(rng, Volumes(customers=50, products=50, offers=100), DATE_START)
+    _, order_items = build_orders(rng, reference.sources, 500, DATE_START, DATE_END)
+    return order_items[:500]
 
 
 @pytest.fixture
