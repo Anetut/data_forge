@@ -20,14 +20,15 @@ Round-trip of 100 000 `order_item` rows (`dataforge.compare_formats_module`, see
 AMD Ryzen 7, 32 GB RAM DDR4-3000, SSD PCIe 4
 Python 3.13, pyarrow 26, Windows 11
 
+Data from `dataforge.generator`: UUIDv7 IDs, rows in time order, about 2.2 items per order, foreign keys drawn from realistic pools.
+
 | | CSV | JSON Lines | Parquet | Parquet with uuids as binary |
 | --- | --- | --- | --- | --- |
-| Write | 1.60 s | 2.09 s | 0.96 s | 0.60 s (−37.5%) |
-| Read to Python dicts | 0.51 s | 0.58 s | 1.59 s | 1.93 s (+21.4%) |
-| Parse to typed rows | 1.43 s | 1.45 s | 1.14 s | 1.04 s (−8.8%) |
-| File Size | 25.23 MB | 47.93 MB | 18.36 MB | 10.80 MB (−41.2%) |
+| Write | 1.78 s | 2.44 s | 1.04 s | 0.61 s (−41.3%) |
+| Read to Python dicts | 0.56 s | 0.61 s | 2.06 s | 2.53 s (+22.8%) |
+| Parse to typed rows | 1.50 s | 1.51 s | 1.27 s | 1.17 s (−7.9%) |
+| File Size | 27.26 MB | 49.77 MB | 6.74 MB | 4.96 MB (−26.4%) |
 | Columns changed on raw read | 12 of 12 | 10 of 12 | 5 of 12 | 5 of 12 |
-| Read 2 of 12 columns | n/a | n/a | 0.04 s vs 1.62 s (36.4×) | - |
 
 
 Percentages: binary vs Parquet, minus = less.
@@ -36,12 +37,14 @@ Read split into reading the file and converting it to Python objects:
 
 | | Parquet | Parquet with uuids as binary |
 | --- | --- | --- |
-| File -> Arrow table | 0.016 s | 0.011 s |
-| Arrow table -> Python dicts | 1.64 s | 2.03 s |
+| File -> Arrow table | 0.011 s | 0.009 s |
+| Arrow table -> Python dicts | 2.06 s | 2.42 s |
 
 Slower read times is due to python processing, so it isn't a reliable indicator for binary vs string uuid.
 
-Same test environment, 1 000 000 rows:
+Earlier run with the first generator (four random v4 IDs per row, nothing repeating): Parquet 18.36 MB, binary 10.80 MB. With realistic data the foreign keys repeat and dictionary-encode whatever their type, so only `id` stays expensive.
+
+Same test environment, 1 000 000 rows (first generator, random v4 IDs, not re-run):
 | | CSV | JSON Lines | Parquet |
 | --- | --- | --- | --- |
 | Write | 14.90 s | 20.51 s | 9.60 s |
