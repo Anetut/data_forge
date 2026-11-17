@@ -33,13 +33,14 @@ from pathlib import Path
 
 import psycopg
 
+from dataforge.db import connect
 from dataforge.generator.data.orders import build_orders
 from dataforge.generator.data.reference import Volumes, build_reference
 from dataforge.generator.database.activity import simulate_activity
-from dataforge.generator.database.connection import PROJECT_ROOT, connect
 from dataforge.generator.database.loading import copy_rows, is_empty, load_reference, read_sources
 from dataforge.generator.partner_feed import build_feed, write_feed
 from dataforge.generator.partner_feed.issues import DEFAULT_ISSUE_RATE
+from dataforge.paths import FEEDS_DIR
 
 HISTORY = timedelta(days=730)
 
@@ -111,9 +112,7 @@ def _add_partner_feed_command(commands: argparse._SubParsersAction) -> None:
         default=DEFAULT_ISSUE_RATE,
         help="share of lines that get an injected issue",
     )
-    feed.add_argument(
-        "--out", type=Path, default=PROJECT_ROOT / "data" / "feeds", help="output directory"
-    )
+    feed.add_argument("--out", type=Path, default=FEEDS_DIR, help="output directory")
     feed.set_defaults(run=_run_partner_feed)
 
 
