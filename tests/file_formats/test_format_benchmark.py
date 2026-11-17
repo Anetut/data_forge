@@ -1,4 +1,22 @@
-from dataforge.compare_formats_module import find_changed_columns_after_round_trip
+from dataforge.file_formats.csv_format import CsvFormat
+from dataforge.format_benchmark import benchmark, find_changed_columns_after_round_trip
+
+
+def test_benchmark_reports_the_round_trip(items, tmp_path):
+    result = benchmark(CsvFormat(), tmp_path / "items.csv", items)
+
+    assert result.suffix == ".csv"
+    assert result.row_count == len(items)
+    assert result.size_bytes > 0
+    assert result.restored is True
+    # CSV hands back text, so every column that isn't a string in the rows changes type.
+    assert "quantity" in result.changed_columns
+    assert "price_at_the_time" in result.changed_columns
+
+
+def test_benchmark_leaves_no_warmup_file(items, tmp_path):
+    benchmark(CsvFormat(), tmp_path / "items.csv", items)
+    assert [path.name for path in tmp_path.iterdir()] == ["items.csv"]
 
 
 def test_identical_rows_have_no_changed_columns(one_order_item_list):

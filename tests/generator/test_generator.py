@@ -1,29 +1,25 @@
 import json
 import random
 from collections import Counter
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 import pytest
 
 from dataforge.domain.enums import OrderStatus
-from dataforge.file_formats.jsonl_file import parse_jsonl_row
+from dataforge.file_formats.jsonl_format import JsonlFormat
 from dataforge.generator.feed import Issue, build_feed, write_feed
 from dataforge.generator.orders import build_orders
-from dataforge.generator.reference import ReferenceData, Volumes, build_reference
-
-NOW = datetime(2026, 6, 1, tzinfo=UTC)
-START = NOW - timedelta(days=365)
-SMALL = Volumes(customers=50, sellers=5, products=40, categories=5, offers=60)
+from dataforge.generator.reference import ReferenceData, build_reference
 
 
 @pytest.fixture
-def reference() -> ReferenceData:
-    return build_reference(random.Random(31), SMALL, before=START)
+def reference(history_start, small_volumes) -> ReferenceData:
+    return build_reference(random.Random(31), small_volumes, before=history_start)
 
 
 @pytest.fixture
-def orders_and_items(reference):
-    return build_orders(random.Random(31), reference.sources, 2_000, START, NOW)
+def orders_and_items(history_start, reference_time, reference):
+    return build_orders(random.Random(31), reference.sources, 2_000, history_start, reference_time)
 
 
 def test_reference_unique_constraints_hold(reference):
@@ -59,11 +55,11 @@ def test_orders_and_ids_are_in_time_order(orders_and_items):
     assert [order["id"] for order in orders] == sorted(order["id"] for order in orders)
 
 
-def test_item_timestamps_follow_the_lifecycle(orders_and_items):
+def test_item_timestamps_follow_the_lifecycle(reference_time, orders_and_items):
     _, items = orders_and_items
     for item in items:
         last_event = item["delivered_at"] or item["shipped_at"] or item["created_at"]
-        assert item["created_at"] <= last_event <= item["updated_at"] <= NOW
+        assert item["created_at"] <= last_event <= item["updated_at"] <= reference_time
         if item["delivered_at"] is not None:
             assert item["shipped_at"] is not None
             assert item["delivered_at"] >= item["shipped_at"]
@@ -81,23 +77,27 @@ def test_item_status_matches_timestamps(orders_and_items):
                 assert item["delivered_at"] is not None
 
 
-def test_old_orders_are_finished_and_recent_ones_are_not(orders_and_items):
+def test_old_orders_are_finished_and_recent_ones_are_not(reference_time, orders_and_items):
     _, items = orders_and_items
-    old = Counter(i["order_status"] for i in items if i["created_at"] < NOW - timedelta(days=30))
+    old = Counter(
+        i["order_status"] for i in items if i["created_at"] < reference_time - timedelta(days=30)
+    )
     assert old[OrderStatus.PENDING] == 0 and old[OrderStatus.SHIPPED] == 0
-    recent = Counter(i["order_status"] for i in items if i["created_at"] > NOW - timedelta(hours=2))
+    recent = Counter(
+        i["order_status"] for i in items if i["created_at"] > reference_time - timedelta(hours=2)
+    )
     assert recent[OrderStatus.DELIVERED] == 0
 
 
-def test_generation_is_reproducible(reference):
-    first = build_orders(random.Random(5), reference.sources, 100, START, NOW)
-    second = build_orders(random.Random(5), reference.sources, 100, START, NOW)
+def test_generation_is_reproducible(history_start, reference_time, reference):
+    first = build_orders(random.Random(5), reference.sources, 100, history_start, reference_time)
+    second = build_orders(random.Random(5), reference.sources, 100, history_start, reference_time)
     assert first == second
 
 
 @pytest.fixture
-def feed(reference):
-    return build_feed(random.Random(31), reference.sources, 3_000, NOW, issue_rate=0.2)
+def feed(reference_time, reference):
+    return build_feed(random.Random(31), reference.sources, 3_000, reference_time, issue_rate=0.2)
 
 
 def test_feed_manifest_points_at_the_right_lines(feed):
@@ -116,7 +116,7 @@ def test_feed_rows_without_issues_parse_cleanly(feed):
     flagged = {entry["line"] for entry in manifest}
     for line, row in enumerate(rows, start=1):
         if line not in flagged:
-            parse_jsonl_row(row)
+            JsonlFormat().parse_row(row)
 
 
 @pytest.mark.parametrize("issue", [Issue.MISSING_VALUE, Issue.BAD_FORMAT])
@@ -125,7 +125,7 @@ def test_feed_structural_issues_fail_parsing(feed, issue):
     for entry in manifest:
         if entry["issue"] == issue:
             with pytest.raises((KeyError, TypeError, ValueError, ArithmeticError)):
-                parse_jsonl_row(rows[entry["line"] - 1])
+                JsonlFormat().parse_row(rows[entry["line"] - 1])
 
 
 def test_feed_duplicates_and_updates_come_after_the_original(feed):
@@ -136,9 +136,9 @@ def test_feed_duplicates_and_updates_come_after_the_original(feed):
             assert first_line < entry["line"]
 
 
-def test_write_feed_creates_feed_and_manifest(tmp_path, feed):
+def test_write_feed_creates_feed_and_manifest(reference_time, tmp_path, feed):
     rows, manifest = feed
-    path = write_feed(tmp_path, NOW, rows, manifest)
+    path = write_feed(tmp_path, reference_time, rows, manifest)
     lines = path.read_text(encoding="utf-8").splitlines()
     assert [json.loads(line) for line in lines] == rows
     written = json.loads(path.with_name(path.stem + ".manifest.json").read_text(encoding="utf-8"))

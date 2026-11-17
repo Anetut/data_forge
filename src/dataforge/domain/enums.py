@@ -1,3 +1,5 @@
+"""Status and method values shared with the Postgres enum types."""
+
 from enum import StrEnum
 
 
