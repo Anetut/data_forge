@@ -5,10 +5,11 @@
 3. **Parquet schema is written by hand** to match the Postgres table. No inference.
 4. **If CSV is used: an empty cell means null** - fine as long as there are no free-text columns.
 5. **Won't use CSV** - Even if CSV is smaller, ambiguity of null vs `""`, lack of types and too much parsing rules makes it harder to manage
-6. **Landing data as JSON Lines** - easy to append, easy to change when schema changes, readable, easy to work with.
+6. **Landing data format follows the source** - Parquet for database extracts, JSON Lines for JSON feeds.
 7. **Processed data as Parquet** - small file size, exact types, very fast to scan and aggregate
-8. **UUIDs are stored as 16-byte binary**. Spark and Delta have no UUID type, so binary IDs would need converting whenever they are read, filtered by hand, or joined with string IDs - the downside. The upside - faster read/write times from disk, smaller file size. The slower reading is pyarrow's conversion to Python objects; reading the file itself is faster
+8. <s>**UUIDs are stored as 16-byte binary** (reversed, see 10). Spark and Delta have no UUID type, so binary IDs would need converting whenever they are read, filtered by hand, or joined with string IDs - the downside. The upside - faster read/write times from disk, smaller file size. The slower reading is pyarrow's conversion to Python objects; reading the file itself is faster </s>
 9. **UUIDv7 whenever possible**. Faster indexing and processing
+10. **UUIDs as strings** - 8 reversed after finding out that Delta keeps no statistics on binary columns and liquid clustering can't use them, so file skipping wouldn't be possible with UUIDs
 
 
 

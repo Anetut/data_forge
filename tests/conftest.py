@@ -7,7 +7,7 @@ from pathlib import Path
 import psycopg
 import pytest
 
-from dataforge.generator.database.connection import connect
+from dataforge.db import connect
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:

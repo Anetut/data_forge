@@ -14,13 +14,11 @@ from dataforge.file_formats import FORMATS
 from dataforge.file_formats.file_format import FileFormat, RawValue
 from dataforge.generator.data.orders import build_orders
 from dataforge.generator.data.reference import Volumes, build_reference
+from dataforge.paths import DATA_OUTPUT_DIR
 
 SEED = 31
 ROW_COUNT = 100_000
 TIMING_RUNS = 3
-# Assumes the src layout and an editable install.
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_OUTPUT_DIR = PROJECT_ROOT / "data"
 T = TypeVar("T")
 
 

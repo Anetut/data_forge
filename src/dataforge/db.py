@@ -1,3 +1,5 @@
+"""Postgres connection with the same settings docker-compose uses."""
+
 import os
 from pathlib import Path
 
@@ -19,6 +21,8 @@ def connect() -> psycopg.Connection:
         user=setting("POSTGRES_USER", "dataforge"),
         password=setting("POSTGRES_PASSWORD", "dataforge_local_only"),
         dbname=setting("POSTGRES_DB", "dataforge"),
+        # Fail fast when Postgres isn't running instead of retrying for minutes.
+        connect_timeout=5,
     )
 
 

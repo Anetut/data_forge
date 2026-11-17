@@ -1,1 +1,1 @@
-"""Everything that talks to Postgres: the connection, bulk loading and simulated activity."""
+"""Everything the generator writes to Postgres: bulk loading and simulated activity."""
