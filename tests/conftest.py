@@ -1,5 +1,6 @@
 """Fixtures shared by every test folder. Folder-specific ones live in each folder's conftest.py."""
 
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -33,6 +34,9 @@ def conn():
     try:
         connection = connect()
     except psycopg.OperationalError:
+        # Locally a missing Postgres is fine; in CI it must fail, or the tests pass by skipping.
+        if os.environ.get("CI"):
+            raise
         pytest.skip("Postgres is not running")
     try:
         yield connection

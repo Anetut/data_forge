@@ -5,14 +5,25 @@ on:
     branches: [main]
   pull_request:
 
+# The workflow only reads the code.
+permissions:
+  contents: read
+
+# A new push to the same branch or PR cancels the run that is now outdated.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          # The lowest version pyproject.toml supports.
+          python-version: "3.11"
           cache: pip
       - run: pip install -e ".[dev,ingest]"
       - run: ruff check .
@@ -20,9 +31,10 @@ jobs:
       - run: pyright
       - run: pytest -m "not integration"
 
-  sql-schema:
+  postgres:
+    # The SQL schema and every integration test, against a fresh Postgres.
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:16
@@ -37,13 +49,52 @@ jobs:
           --health-interval=5s
           --health-timeout=3s
           --health-retries=10
+    env:
+      # Read by dataforge's connect(); the other settings match its defaults.
+      POSTGRES_PASSWORD: ci_only
+      PGPASSWORD: ci_only
     steps:
       - uses: actions/checkout@v4
       - name: Apply SQL init scripts
-        env:
-          PGPASSWORD: ci_only
         run: |
           for f in sql/init/*.sql; do
             echo "Applying $f"
             psql -h localhost -U dataforge -d dataforge -v ON_ERROR_STOP=1 -f "$f"
           done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[dev,ingest]"
+      - run: pytest -m integration
+
+  version-bump:
+    # Code or schema changes must bump __version__ (SemVer; which part is the author's call).
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check that __version__ was bumped
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: |
+          if git diff --quiet "$BASE"...HEAD -- src/ sql/; then
+            echo "No changes under src/ or sql/: no version bump needed."
+            exit 0
+          fi
+          version_pattern='^__version__ = "\K[^"]+'
+          old=$(git show "$BASE":src/dataforge/__init__.py | grep -oP "$version_pattern")
+          new=$(grep -oP "$version_pattern" src/dataforge/__init__.py)
+          echo "Version on ${{ github.base_ref }}: $old, on this branch: $new"
+          if [ "$old" = "$new" ]; then
+            echo "::error file=src/dataforge/__init__.py::src/ or sql/ changed but __version__ is still $new"
+            exit 1
+          fi
+          highest=$(printf '%s\n%s\n' "$old" "$new" | sort -V | tail -n 1)
+          if [ "$highest" != "$new" ]; then
+            echo "::error file=src/dataforge/__init__.py::__version__ went down: $old -> $new"
+            exit 1
+          fi
