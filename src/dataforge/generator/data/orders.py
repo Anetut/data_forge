@@ -14,8 +14,12 @@ Row = dict[str, object]
 
 CANCEL_RATE = 0.03
 RETURN_RATE = 0.04
-ITEMS_PER_ORDER = ([1, 2, 3, 4, 5], [35, 30, 18, 10, 7])
-QUANTITY = ([1, 2, 3, 5, 10], [70, 15, 8, 5, 2])
+# How many items an order has, and how often (weights, not percentages).
+ITEM_COUNTS = [1, 2, 3, 4, 5]
+ITEM_COUNT_WEIGHTS = [35, 30, 18, 10, 7]
+# How many units of one item are bought, and how often.
+QUANTITIES = [1, 2, 3, 5, 10]
+QUANTITY_WEIGHTS = [70, 15, 8, 5, 2]
 
 
 @dataclass(frozen=True)
@@ -77,10 +81,10 @@ def _build_items(
     created_at: datetime,
     now: datetime,
 ) -> list[OrderItemRow]:
-    # One shipment per order: all items share the shipping lifecycle; returns are per item.
+    # One shipment per order, so all its items ship and arrive together. Returns happen per item.
     lifecycle = order_lifecycle(rand_gen, created_at, now)
     shipping_provider_id = rand_gen.choice(sources.shipping_provider_ids)
-    item_count = rand_gen.choices(*ITEMS_PER_ORDER)[0]
+    item_count = rand_gen.choices(ITEM_COUNTS, weights=ITEM_COUNT_WEIGHTS)[0]
     items: list[OrderItemRow] = []
     for offer in rand_gen.sample(sources.stock, k=min(item_count, len(sources.stock))):
         item_lifecycle = _maybe_returned(rand_gen, lifecycle, now)
@@ -93,7 +97,7 @@ def _build_items(
                 "price_at_the_time": offer.price,
                 "discount_pct_at_the_time": offer.discount_pct,
                 "order_status": item_lifecycle.status,
-                "quantity": rand_gen.choices(*QUANTITY)[0],
+                "quantity": rand_gen.choices(QUANTITIES, weights=QUANTITY_WEIGHTS)[0],
                 "shipped_at": item_lifecycle.shipped_at,
                 "delivered_at": item_lifecycle.delivered_at,
                 "created_at": created_at,

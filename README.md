@@ -79,15 +79,15 @@ docker compose up -d postgres
 
 Later steps add extras: `pip install -e ".[dev,spark]"` (Step 3) and `".[dev,services]"` (Step 7).
 
-### Synthetic data
+### Fake data
 
 ```powershell
-python -m dataforge.generator seed       # empty database: reference data + 2 years of orders
-python -m dataforge.generator activity   # one run of changes: status updates, new and late orders, deletes
-python -m dataforge.generator feed       # partner JSON Lines feed in data/feeds/, with a manifest of injected issues
+python -m dataforge.generator fill-db        # empty database: reference data + 2 years of orders
+python -m dataforge.generator activity       # one run of changes: status updates, new and late orders, deletes
+python -m dataforge.generator partner-feed   # partner JSON Lines feed in data/feeds/, with a manifest of injected issues
 ```
 
-`--seed` fixes the randomness; dates are relative to today. Integration tests run against the same database and roll back: `pytest -m integration`.
+`--seed` fixes the randomness; dates are relative to today. `fill-db --scale 10` builds a ten times bigger shop (orders, customers and catalogue). Integration tests run against the same database and roll back: `pytest -m integration`.
 
 ### Prerequisites
 

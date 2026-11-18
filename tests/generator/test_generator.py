@@ -7,9 +7,9 @@ import pytest
 
 from dataforge.domain.enums import OrderStatus
 from dataforge.file_formats.jsonl_format import JsonlFormat
-from dataforge.generator.feed import Issue, build_feed, write_feed
-from dataforge.generator.orders import build_orders
-from dataforge.generator.reference import ReferenceData, build_reference
+from dataforge.generator.data.orders import build_orders
+from dataforge.generator.data.reference import ReferenceData, Volumes, build_reference
+from dataforge.generator.partner_feed import Issue, build_feed, write_feed
 
 
 @pytest.fixture
@@ -143,3 +143,28 @@ def test_write_feed_creates_feed_and_manifest(reference_time, tmp_path, feed):
     assert [json.loads(line) for line in lines] == rows
     written = json.loads(path.with_name(path.stem + ".manifest.json").read_text(encoding="utf-8"))
     assert written["issues"] == manifest
+
+
+def test_scaling_multiplies_the_shop_but_keeps_its_structure():
+    scaled = Volumes().scaled(10)
+    assert (scaled.customers, scaled.sellers, scaled.products, scaled.offers) == (
+        20_000,
+        500,
+        10_000,
+        20_000,
+    )
+    assert (scaled.managers, scaled.shipping_providers, scaled.categories, scaled.warehouses) == (
+        10,
+        5,
+        20,
+        5,
+    )
+
+
+def test_scale_one_changes_nothing():
+    assert Volumes().scaled(1) == Volumes()
+
+
+def test_tiny_scale_never_empties_a_table():
+    tiny = Volumes(sellers=50).scaled(0.001)
+    assert tiny.sellers == 1

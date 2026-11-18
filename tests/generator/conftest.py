@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from dataforge.generator.reference import Volumes
+from dataforge.generator.data.reference import Volumes
 
 
 @pytest.fixture

@@ -1,11 +1,12 @@
-"""Runs against the local Postgres from docker-compose; everything is rolled back."""
+"""Runs against the local Postgres from docker-compose. Everything is rolled back."""
 
 import random
 from datetime import timedelta
 
-from dataforge.generator.database import copy_rows, load_reference, simulate_activity
-from dataforge.generator.orders import build_orders
-from dataforge.generator.reference import build_reference
+from dataforge.generator.data.orders import build_orders
+from dataforge.generator.data.reference import build_reference
+from dataforge.generator.database.activity import simulate_activity
+from dataforge.generator.database.loading import copy_rows, load_reference
 
 
 def _seed(conn, rand_gen, now, volumes):

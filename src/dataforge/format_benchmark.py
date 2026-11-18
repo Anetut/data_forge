@@ -12,8 +12,8 @@ from typing import TypeVar
 from dataforge.domain.order_item_row import ORDER_ITEM_COLUMNS, OrderItemRow
 from dataforge.file_formats import FORMATS
 from dataforge.file_formats.file_format import FileFormat, RawValue
-from dataforge.generator.orders import build_orders
-from dataforge.generator.reference import Volumes, build_reference
+from dataforge.generator.data.orders import build_orders
+from dataforge.generator.data.reference import Volumes, build_reference
 
 SEED = 31
 ROW_COUNT = 100_000
@@ -42,7 +42,7 @@ def main() -> None:
     date_start = datetime(2020, 1, 1, tzinfo=UTC)
     date_end = datetime(2026, 1, 1, tzinfo=UTC)
     reference = build_reference(random_generator, Volumes(), before=date_start)
-    # About 2.2 items per order; cut to exactly ROW_COUNT so results stay comparable.
+    # An order has about 2.2 items, so we cut to exactly ROW_COUNT to keep results comparable.
     _, items = build_orders(random_generator, reference.sources, ROW_COUNT, date_start, date_end)
     rows = items[:ROW_COUNT]
 
@@ -54,8 +54,8 @@ def main() -> None:
 def benchmark(
     fmt: FileFormat[RawValue], file_path: Path, rows: list[OrderItemRow]
 ) -> BenchmarkResult:
-    """Write, read and parse `rows` with `fmt`; return the measurements without printing."""
-    # Made once for a smaller batch for library loading so it doesn't count for measurements
+    """Write, read and parse `rows` with `fmt`, and return the measurements without printing."""
+    # Warm up first: the first call loads the libraries, and that time shouldn't count.
     warmup_path = file_path.with_name("warmup-" + file_path.name)
     fmt.write(warmup_path, rows[:100])
     fmt.read(warmup_path)
@@ -111,7 +111,7 @@ def find_changed_columns_after_round_trip(
 
 
 def _avg_of(operation: Callable[[], T]) -> tuple[T, float]:
-    """Takes a method as lambda function, returns the result and avg time needed to complete it."""
+    """Run `operation` TIMING_RUNS times and return its last result and the average seconds."""
     runs = [_timed(operation) for _ in range(TIMING_RUNS)]
     result = runs[-1][0]
     return result, mean(seconds for _, seconds in runs)
