@@ -1,4 +1,14 @@
-# DataForge
+<p align="center">
+  <img src="docs/images/data_forge_logo.png" alt="DataForge logo" width="420">
+</p>
+
+<h1 align="center">DataForge</h1>
+
+<p align="center">
+  <a href="https://github.com/Anetut/data_forge/actions/workflows/ci.yml"><img src="https://github.com/Anetut/data_forge/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
+
+## Overview
 
 An end-to-end data processing platform for a simulated e-commerce business. It ingests messy data from several sources, cleans and models it with **PySpark + Delta Lake** in a **Bronze / Silver / Gold** (medallion) layout, and serves it to analytics and operational services. It starts fully local and moves to **Azure Databricks + ADLS Gen2** in later phases.
 
@@ -15,26 +25,22 @@ An end-to-end data processing platform for a simulated e-commerce business. It i
 - Step 8: Streaming: Event Hubs, Structured Streaming
 - Step 9: Production readiness: tests, data quality, CI/CD
 
-
-
 ## Stack
 
 | Concern | Technology |
 | --- | --- |
 | Language | Python 3.11+ |
 | Operational DB | PostgreSQL 16 (Docker) |
+| Data access | psycopg 3, PyArrow (Parquet) |
 | Processing | Apache Spark / PySpark |
 | Lakehouse | Delta Lake, Azure Databricks, ADLS Gen2 |
 | Services | FastAPI, Pydantic |
 | Streaming (optional) | Spark Structured Streaming, Azure Event Hubs |
-| Quality | Pytest, Ruff, GitHub Actions |
-
-
-
+| Quality | Pytest, Ruff, Pyright, GitHub Actions |
 
 ## Repository layout
 
-Shared code lives in the installable `dataforge` package under `src/`.  Services, Spark jobs and Databricks assets live in top-level directories and import from that package. Dependencies are split into optional extras per Step in `pyproject.toml`.
+Shared code lives in the installable `dataforge` package under `src/`. Services, Spark jobs and Databricks assets live in top-level directories and import from that package. Dependencies are split into optional extras per Step in `pyproject.toml`.
 
 ```
 src/dataforge/   Shared Python package (config, logging, ingestion, validation, ...)
@@ -46,7 +52,7 @@ infra/           Azure infrastructure definitions (Step 6)
 notebooks/       Local exploration notebooks
 data/            Generated datasets (git-ignored)
 tests/           Unit and integration tests
-docs/            Architecture, conventions, roadmap, ADRs
+docs/            Decisions, SQL schema and diagrams, images
 ```
 
 ## Getting started (Windows / PowerShell)
@@ -71,7 +77,7 @@ docker compose down -v
 docker compose up -d postgres
 ```
 
-Later steps add extras: `pip install -e ".[dev,ingest]"`, `".[dev,spark]"`, `".[dev,services]"`.
+Later steps add extras: `pip install -e ".[dev,spark]"` (Step 3) and `".[dev,services]"` (Step 7).
 
 ### Synthetic data
 
@@ -90,7 +96,7 @@ python -m dataforge.generator feed       # partner JSON Lines feed in data/feeds
 - Git
 - **Java 17 or 21** from Step 3 on (needed by Spark; newer JDKs may not be supported by the pinned PySpark version). If a newer JDK is first on your `PATH`, point Spark at 21 for the current shell:
   ```powershell
-  $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.13.9-hotspot"
+  $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\<your jdk-21 folder>"
   ```
 
 ## Documentation
