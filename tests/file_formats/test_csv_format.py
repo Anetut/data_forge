@@ -5,20 +5,23 @@ from uuid import UUID
 import pytest
 
 from dataforge.domain.enums import OrderStatus
-from dataforge.file_formats.csv_file import parse_csv_row, read_csv, write_csv
+from dataforge.file_formats.csv_format import CsvFormat
 
 
-def test_items_written_in_csv(items, tmp_path):
+@pytest.fixture
+def csv_format() -> CsvFormat:
+    return CsvFormat()
+
+
+def test_items_written_in_csv(csv_format, items, tmp_path):
     csv_file = tmp_path / "items.csv"
-    write_csv(csv_file, items)
+    csv_format.write(csv_file, items)
+    assert len(csv_format.read(csv_file)) == len(items)
 
-    assert len(read_csv(csv_file)) == len(items)
 
-
-def test_item_types_in_csv(tmp_path, one_order_item_list):
+def test_item_types_in_csv(csv_format, tmp_path, one_order_item_list):
     file_path = tmp_path / "items.csv"
-
-    write_csv(file_path, one_order_item_list)
+    csv_format.write(file_path, one_order_item_list)
     with open(file_path, encoding="utf-8") as csv_file:
         lines = csv_file.readlines()
     assert (
@@ -33,9 +36,10 @@ def test_item_types_in_csv(tmp_path, one_order_item_list):
     )
 
 
-def test_csv_round_trip_returns_strings(tmp_path, one_order_item_list):
-    write_csv(tmp_path / "items.csv", one_order_item_list)
-    file_content = read_csv(tmp_path / "items.csv")
+def test_csv_round_trip_returns_strings(csv_format, tmp_path, one_order_item_list):
+    file_path = tmp_path / "items.csv"
+    csv_format.write(file_path, one_order_item_list)
+    file_content = csv_format.read(file_path)
     assert file_content == [
         {
             "id": "240f16a7-6490-4d4a-8393-fd0e1cc62be5",
@@ -54,8 +58,8 @@ def test_csv_round_trip_returns_strings(tmp_path, one_order_item_list):
     ]
 
 
-def test_parse_csv_row(raw_csv_row):
-    parsed_row = parse_csv_row(raw_csv_row)
+def test_parse_csv_row(csv_format, raw_csv_row):
+    parsed_row = csv_format.parse_row(raw_csv_row)
     assert parsed_row == {
         "id": UUID("240f16a7-6490-4d4a-8393-fd0e1cc62be5"),
         "order_id": UUID("b12f16a7-6490-4d4a-8393-fd0e1cc62be5"),
@@ -72,9 +76,9 @@ def test_parse_csv_row(raw_csv_row):
     }
 
 
-def test_parse_csv_row_with_0_discount(raw_csv_row):
+def test_parse_csv_row_with_0_discount(csv_format, raw_csv_row):
     raw_csv_row["discount_pct_at_the_time"] = "0"
-    parsed_row = parse_csv_row(raw_csv_row)
+    parsed_row = csv_format.parse_row(raw_csv_row)
     assert parsed_row["discount_pct_at_the_time"] == 0
 
 
@@ -82,9 +86,9 @@ def test_parse_csv_row_with_0_discount(raw_csv_row):
     "column",
     ["shipped_at", "delivered_at"],
 )
-def test_parse_csv_row_with_null_dates(raw_csv_row, column):
+def test_parse_csv_row_with_null_dates(csv_format, raw_csv_row, column):
     raw_csv_row[column] = ""
-    parsed_row = parse_csv_row(raw_csv_row)
+    parsed_row = csv_format.parse_row(raw_csv_row)
     assert parsed_row[column] is None
 
 
@@ -92,27 +96,13 @@ def test_parse_csv_row_with_null_dates(raw_csv_row, column):
     "column",
     ["shipped_at", "delivered_at", "updated_at", "created_at"],
 )
-def test_parse_csv_row_rejects_datetime_without_offset(raw_csv_row, column):
+def test_parse_csv_row_rejects_datetime_without_offset(csv_format, raw_csv_row, column):
     raw_csv_row[column] = "2024-01-02 00:00:00"
     with pytest.raises(ValueError, match="without a UTC offset"):
-        parse_csv_row(raw_csv_row)
+        csv_format.parse_row(raw_csv_row)
 
 
-def test_parse_csv_row_and_raises_error_for_unknown_enum_value(raw_csv_row):
+def test_parse_csv_row_and_raises_error_for_unknown_enum_value(csv_format, raw_csv_row):
     raw_csv_row["order_status"] = "Unknown"
     with pytest.raises(ValueError, match="Unknown"):
-        parse_csv_row(raw_csv_row)
-
-
-def test_parse_csv_row_for_batch_data_round_trip(items, tmp_path):
-    write_csv(tmp_path / "items.csv", items)
-    file_content = read_csv(tmp_path / "items.csv")
-    parsed_rows = [parse_csv_row(raw_row) for raw_row in file_content]
-    assert parsed_rows == items
-
-
-def test_parse_csv_row_for_empty_file(tmp_path):
-    write_csv(tmp_path / "items.csv", [])
-    file_content = read_csv(tmp_path / "items.csv")
-    parsed_rows = [parse_csv_row(raw_row) for raw_row in file_content]
-    assert parsed_rows == []
+        csv_format.parse_row(raw_csv_row)

@@ -1,3 +1,5 @@
+"""One order_item row as typed Python values."""
+
 from datetime import datetime
 from decimal import Decimal
 from typing import TypedDict

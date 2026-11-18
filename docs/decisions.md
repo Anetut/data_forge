@@ -15,14 +15,14 @@
 # Experiment
 
 
-Round-trip of 100 000 `order_item` rows (`dataforge.compare_formats_module`, seed 31, mean of 3 runs after warm-up):
+Round-trip of 100 000 `order_item` rows (`dataforge.format_benchmark`, seed 31, mean of 3 runs after warm-up):
 
 AMD Ryzen 7, 32 GB RAM DDR4-3000, SSD PCIe 4
 Python 3.13, pyarrow 26, Windows 11
 
 Data from `dataforge.generator`: UUIDv7 IDs, rows in time order, about 2.2 items per order, foreign keys drawn from realistic pools.
 
-| | CSV | JSON Lines | Parquet | Parquet with uuids as binary |
+| | CSV | JSON Lines | Parquet | Parquet with uuids as binary (measured with 2c5a822 commit) |
 | --- | --- | --- | --- | --- |
 | Write | 1.78 s | 2.44 s | 1.04 s | 0.61 s (−41.3%) |
 | Read to Python dicts | 0.56 s | 0.61 s | 2.06 s | 2.53 s (+22.8%) |
@@ -35,7 +35,7 @@ Percentages: binary vs Parquet, minus = less.
 
 Read split into reading the file and converting it to Python objects:
 
-| | Parquet | Parquet with uuids as binary |
+| | Parquet | Parquet with uuids as binary (measured with 2c5a822 commit) |
 | --- | --- | --- |
 | File -> Arrow table | 0.011 s | 0.009 s |
 | Arrow table -> Python dicts | 2.06 s | 2.42 s |
