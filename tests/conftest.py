@@ -7,7 +7,7 @@ from pathlib import Path
 import psycopg
 import pytest
 
-from dataforge.generator.database import connect
+from dataforge.generator.database.connection import connect
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
@@ -30,11 +30,11 @@ def project_root(pytestconfig) -> Path:
 
 @pytest.fixture
 def conn():
-    """Connection to the local Postgres; everything a test does is rolled back."""
+    """Connection to the local Postgres. Everything a test does is rolled back."""
     try:
         connection = connect()
     except psycopg.OperationalError:
-        # Locally a missing Postgres is fine; in CI it must fail, or the tests pass by skipping.
+        # Locally a missing Postgres is fine. In CI it must fail, or tests would pass by skipping.
         if os.environ.get("CI"):
             raise
         pytest.skip("Postgres is not running")

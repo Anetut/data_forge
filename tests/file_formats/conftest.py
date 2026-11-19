@@ -7,8 +7,8 @@ import pytest
 
 from dataforge.domain.enums import OrderStatus
 from dataforge.domain.order_item_row import OrderItemRow
-from dataforge.generator.orders import build_orders
-from dataforge.generator.reference import Volumes, build_reference
+from dataforge.generator.data.orders import build_orders
+from dataforge.generator.data.reference import Volumes, build_reference
 
 
 @pytest.fixture
