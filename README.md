@@ -87,7 +87,9 @@ python -m dataforge.generator activity       # one run of changes: status update
 python -m dataforge.generator partner-feed   # partner JSON Lines feed in data/feeds/, with a manifest of injected issues
 ```
 
-`--seed` fixes the randomness; dates are relative to today. `fill-db --scale 10` builds a ten times bigger shop (orders, customers and catalogue). Integration tests run against the same database and roll back: `pytest -m integration`.
+`--seed` fixes the randomness; dates are relative to today. `fill-db --scale 10` builds a ten times bigger shop (orders, customers and catalogue).
+
+Integration tests use a separate `dataforge_test` database in the same container (created on first start by `sql/init/02-create-test-database.sh`) and roll back: `pytest -m integration`.
 
 ### Prerequisites
 

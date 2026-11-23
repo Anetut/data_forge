@@ -7,7 +7,10 @@ from pathlib import Path
 import psycopg
 import pytest
 
-from dataforge.generator.database.connection import connect
+from dataforge.db import connect
+
+# Tests never touch the main database. Created by sql/init/02-create-test-database.sh.
+TEST_DATABASE = os.environ.get("POSTGRES_TEST_DB", "dataforge_test")
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
@@ -30,14 +33,15 @@ def project_root(pytestconfig) -> Path:
 
 @pytest.fixture
 def conn():
-    """Connection to the local Postgres. Everything a test does is rolled back."""
+    """Connection to the test database. Everything a test does is rolled back."""
     try:
-        connection = connect()
-    except psycopg.OperationalError:
+        connection = connect(dbname=TEST_DATABASE)
+    except psycopg.OperationalError as error:
         # Locally a missing Postgres is fine. In CI it must fail, or tests would pass by skipping.
         if os.environ.get("CI"):
             raise
-        pytest.skip("Postgres is not running")
+        # The reason shows in the summary (-ra), so a missing test database doesn't go unnoticed.
+        pytest.skip(f"Test database not reachable: {error}")
     try:
         yield connection
     finally:

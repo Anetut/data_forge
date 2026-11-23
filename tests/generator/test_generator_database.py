@@ -6,16 +6,13 @@ from datetime import timedelta
 from dataforge.generator.data.orders import build_orders
 from dataforge.generator.data.reference import build_reference
 from dataforge.generator.database.activity import simulate_activity
-from dataforge.generator.database.loading import copy_rows, load_reference
+from dataforge.generator.database.loading import copy_rows
+from mock_data_helpers import insert_reference_data_with_unique_emails
 
 
 def _seed(conn, rand_gen, now, volumes):
     reference = build_reference(rand_gen, volumes, before=now - timedelta(days=30))
-    # Unique emails, so the test also works on a database that already holds data.
-    for table in ("manager", "customer"):
-        for row in reference.tables[table]:
-            row["email"] = f"test-{rand_gen.getrandbits(64):x}-{row['email']}"
-    load_reference(conn, reference)
+    insert_reference_data_with_unique_emails(conn, rand_gen, reference, "test")
     orders, items = build_orders(rand_gen, reference.sources, 200, now - timedelta(days=30), now)
     copy_rows(conn, "orders", orders)
     copy_rows(conn, "order_item", [dict(item) for item in items])

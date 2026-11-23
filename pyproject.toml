@@ -51,6 +51,8 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Lets tests import shared helpers such as `mock_data_helpers` from tests/.
+pythonpath = ["tests"]
 addopts = "-ra"
 markers = [
   "integration: needs external services (Postgres, Spark); deselect with -m 'not integration'",
@@ -58,6 +60,7 @@ markers = [
 
 [tool.pyright]
 include = ["src", "tests"]
+extraPaths = ["tests"]
 pythonVersion = "3.11"
 # Same engine as VS Code's Pylance, so editor and CI report the same errors.
 typeCheckingMode = "standard"

@@ -1,15 +1,18 @@
-"""Connection to the local Postgres, with the same settings docker-compose uses."""
+"""Postgres connection with the same settings docker-compose uses."""
 
 import os
 from pathlib import Path
 
 import psycopg
 
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
+from dataforge.paths import PROJECT_ROOT
 
 
-def connect() -> psycopg.Connection:
-    """Connect with the settings docker-compose uses: environment, then `.env`, then defaults."""
+def connect(dbname: str | None = None) -> psycopg.Connection:
+    """Connect with the settings docker-compose uses: environment, then `.env`, then defaults.
+
+    `dbname` overrides POSTGRES_DB, e.g. for the tests' own database.
+    """
     settings = _read_env_file(PROJECT_ROOT / ".env") | os.environ
 
     def setting(name: str, default: str) -> str:
@@ -20,14 +23,14 @@ def connect() -> psycopg.Connection:
         port=int(setting("POSTGRES_PORT", "5432")),
         user=setting("POSTGRES_USER", "dataforge"),
         password=setting("POSTGRES_PASSWORD", "dataforge_local_only"),
-        dbname=setting("POSTGRES_DB", "dataforge"),
+        dbname=dbname or setting("POSTGRES_DB", "dataforge"),
         # Fail fast when Postgres isn't running instead of retrying for minutes.
         connect_timeout=5,
     )
 
 
 def _read_env_file(path: Path) -> dict[str, str]:
-    """Read KEY=value lines and skip comments and blank lines. That's enough for our .env."""
+    """KEY=value lines; comments and blank lines skipped. Enough for this project's .env."""
     if not path.exists():
         return {}
     pairs = {}
