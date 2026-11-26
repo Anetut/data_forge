@@ -105,3 +105,4 @@ Integration tests use a separate `dataforge_test` database in the same container
 
 - [SQL Schema](docs/sql-schema.md)
 - [Decision records](docs/decisions.md)
+- [Findings](docs/findings.md)
