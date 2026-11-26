@@ -47,7 +47,7 @@ src/dataforge/   Shared Python package (config, logging, ingestion, validation, 
 services/        FastAPI microservices (Step 7)
 spark/           PySpark jobs: bronze / silver / gold (Step 3+)
 databricks/      Databricks notebooks, job definitions, bundle config (Step 4+)
-sql/             PostgreSQL schema, init scripts and analytical queries
+sql/             PostgreSQL migrations (Flyway), init scripts and analytical queries
 infra/           Azure infrastructure definitions (Step 6)
 notebooks/       Local exploration notebooks
 data/            Generated datasets (git-ignored)
@@ -63,18 +63,25 @@ python -m venv .venv
 pip install -e ".[dev,ingest]"
 
 copy .env.example .env
-docker compose up -d postgres
+docker compose up -d
 
 ruff check .
 pyright
 pytest
 ```
 
-Scripts in `sql/init/` run only when the Postgres volume is empty. After changing them, recreate the database (this deletes local data):
+The schema is managed with [Flyway](https://documentation.red-gate.com/flyway) migrations in `sql/migrations/` (`V1__baseline.sql`, `V2__...`). `docker compose up -d` starts Postgres and applies every pending migration. To apply new migrations to a running database:
 
 ```powershell
+docker compose run --rm migrate
+```
+
+Applied migrations are never edited; a change is a new `V<next>__description.sql` (CI rejects edits to existing ones). `sql/init/` only creates the empty test database on first start of the volume.
+
+To start from scratch (deletes all local data; the schema is rebuilt from the migrations):
+```powershell
 docker compose down -v
-docker compose up -d postgres
+docker compose up -d
 ```
 
 Later steps add extras: `pip install -e ".[dev,spark]"` (Step 3) and `".[dev,services]"` (Step 7).
@@ -89,7 +96,7 @@ python -m dataforge.generator partner-feed   # partner JSON Lines feed in data/f
 
 `--seed` fixes the randomness; dates are relative to today. `fill-db --scale 10` builds a ten times bigger shop (orders, customers and catalogue).
 
-Integration tests use a separate `dataforge_test` database in the same container (created on first start by `sql/init/02-create-test-database.sh`) and roll back: `pytest -m integration`.
+Integration tests use a separate `dataforge_test` database in the same container (created on first start by `sql/init/01-create-test-database.sh`). Every test run rebuilds it from the migrations, and each test rolls back: `pytest -m integration`.
 
 ### Prerequisites
 

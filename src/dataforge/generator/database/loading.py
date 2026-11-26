@@ -65,6 +65,8 @@ def _get_db_tables(conn: psycopg.Connection) -> list:
         name
         for (name,) in conn.execute(
             "SELECT table_name FROM information_schema.tables "
-            "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'"
+            "WHERE table_schema = 'public' AND table_type = 'BASE TABLE' "
+            # Flyway's migration history, not shop data.
+            "AND table_name <> 'flyway_schema_history'"
         )
     ]

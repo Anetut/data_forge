@@ -12,13 +12,46 @@ services:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # Scripts here run once, on first start of an empty volume (alphabetical order).
+      # Scripts here run once, on first start of an empty volume: they create empty databases.
+      # The schema comes from the Flyway migrations in sql/migrations/.
       - ./sql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      # Over TCP: during the init scripts Postgres only listens on its socket, so this waits for them.
+      test: ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # Applies pending migrations, then exits. Runs on every `docker compose up`; already applied
+  # migrations are skipped. Run it alone with `docker compose run --rm migrate`.
+  migrate: &migrate
+    image: flyway/flyway:13
+    command: migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./sql/migrations:/flyway/sql:ro
+    environment: &flyway-env
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-dataforge}
+      FLYWAY_USER: ${POSTGRES_USER:-dataforge}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:-dataforge_local_only}
+      # A database that already has the schema but no Flyway history is marked as being at V1.
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+      FLYWAY_BASELINE_VERSION: "1"
+      FLYWAY_CONNECT_RETRIES: "10"
+
+  # Rebuilds the test database from scratch: drops everything, then applies every migration.
+  # Started by the test fixtures (tests/conftest.py), never by `docker compose up`.
+  migrate-test:
+    <<: *migrate
+    profiles: [test]
+    command: [clean, migrate]
+    environment:
+      <<: *flyway-env
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/${POSTGRES_TEST_DB:-dataforge_test}
+      # `clean` is off by default for good reason. Only this throwaway database allows it.
+      FLYWAY_CLEAN_DISABLED: "false"
 
 volumes:
   pgdata:

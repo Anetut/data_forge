@@ -14,7 +14,7 @@ from dataforge.domain.enums import OrderStatus, PaymentMethod, PaymentStatus
     ],
 )
 def test_enum_mapping_to_sql(project_root, sql_enum_name, python_enum):
-    sql_create_tables_path = project_root / "sql" / "init" / "01-create-tables.sql"
+    sql_create_tables_path = project_root / "sql" / "migrations" / "V1__baseline.sql"
     sql_create_tables_content = sql_create_tables_path.read_text(encoding="utf-8")
     # Extract the enum values from the SQL create table content for the given enum name
     line_pattern = rf"CREATE\s+TYPE\s+{sql_enum_name}\s+AS\s+ENUM\s*\(([^)]*)\)"

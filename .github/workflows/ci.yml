@@ -32,42 +32,48 @@ jobs:
       - run: pytest -m "not integration"
 
   postgres:
-    # The SQL schema and every integration test, against a fresh Postgres.
+    # The migrations and every integration test, against a fresh Postgres from docker-compose.
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: dataforge
-          POSTGRES_PASSWORD: ci_only
-          POSTGRES_DB: dataforge
-        ports:
-          - "5432:5432"
-        options: >-
-          --health-cmd="pg_isready -h localhost -U dataforge -d dataforge"
-          --health-interval=5s
-          --health-timeout=3s
-          --health-retries=10
     env:
-      # Read by dataforge's connect(); the other settings match its defaults.
+      # Read by docker-compose and by dataforge's connect(); the other settings match the defaults.
       POSTGRES_PASSWORD: ci_only
-      PGPASSWORD: ci_only
     steps:
       - uses: actions/checkout@v4
-      - name: Create the test database and apply the SQL init scripts
+      - name: Start Postgres and migrate the main database
         run: |
-          psql -h localhost -U dataforge -d dataforge -v ON_ERROR_STOP=1 -c "CREATE DATABASE dataforge_test"
-          for f in sql/init/*.sql; do
-            echo "Applying $f"
-            psql -h localhost -U dataforge -d dataforge_test -v ON_ERROR_STOP=1 -f "$f"
-          done
+          docker compose up -d --wait postgres
+          docker compose run --rm migrate
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
       - run: pip install -e ".[dev,ingest]"
+      # The test database is rebuilt from the migrations by the fixtures.
       - run: pytest -m integration
+
+  migrations-immutable:
+    # An applied migration is never edited, renamed or deleted: Flyway would refuse a changed
+    # checksum on every database that already ran it. Fixes go into a new migration.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check that existing migrations are unchanged
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: |
+          changed=$(git diff --name-only --no-renames --diff-filter=MD "$BASE"...HEAD -- sql/migrations/)
+          if [ -n "$changed" ]; then
+            for f in $changed; do
+              echo "::error file=$f::Existing migration changed. Add a new migration instead."
+            done
+            exit 1
+          fi
+          echo "Existing migrations unchanged."
 
   version-bump:
     # Code or schema changes must bump __version__ (SemVer; which part is the author's call).

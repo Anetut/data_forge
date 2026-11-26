@@ -1,4 +1,4 @@
-BEGIN;
+-- Baseline: the schema as it was when Flyway was introduced. Never edit an applied migration; add a new one.
 
 CREATE TYPE payment_method_enum AS ENUM ('Cash', 'Card', 'Transfer');
 CREATE TYPE payment_status_enum AS ENUM ('Pending', 'In Progress', 'Confirmed', 'Failed');
@@ -255,4 +255,3 @@ CREATE TRIGGER payment_attempt_set_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION set_updated_at();
 
-COMMIT;
