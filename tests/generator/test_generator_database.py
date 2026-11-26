@@ -31,6 +31,7 @@ def test_activity_changes_rows_through_the_trigger(conn, now, small_volumes):
     started = conn.execute("SELECT now()").fetchone()
     counts = simulate_activity(conn, random.Random(2), new_orders=10, late_orders=3, deletes=1)
     assert counts["new orders"] == 10 and counts["late orders"] == 3
+    assert counts["late items"] >= counts["late orders"]
     # Inside one transaction now() is constant: every touched row carries exactly that value.
     assert started is not None
     touched = conn.execute(

@@ -102,7 +102,7 @@ def _insert_late_orders(
     )
     copy_rows(conn, "orders", [order | {"updated_at": now} for order in orders])
     copy_rows(conn, "order_item", [dict(item) | {"updated_at": now} for item in items])
-    return {"late orders": len(orders)}
+    return {"late orders": len(orders), "late items": len(items)}
 
 
 def _delete_cancelled(
