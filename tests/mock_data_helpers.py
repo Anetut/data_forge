@@ -10,7 +10,7 @@ import psycopg
 from dataforge.domain.order_item_row import OrderItemRow
 from dataforge.generator.data.orders import build_orders
 from dataforge.generator.data.reference import ReferenceData, Volumes, build_reference
-from dataforge.generator.database.loading import copy_rows, load_reference
+from dataforge.generator.database.loading import copy_rows, historic_load, load_reference
 
 
 def insert_reference_data_with_unique_emails(
@@ -63,7 +63,9 @@ def insert_old_and_recent_order_items(
         {**item, "updated_at": now - timedelta(minutes=30)} for item in new_items
     ]
     insert_orders_for_order_items(conn, old + new, reference.sources.customer_ids[0])
-    copy_rows(conn, "order_item", old + new)
+    # The tests choose updated_at on purpose; the database would otherwise set it to now().
+    with historic_load(conn):
+        copy_rows(conn, "order_item", old + new)
     return old, new
 
 
@@ -88,5 +90,6 @@ def insert_order_items_updated_at(
         for item, time in zip(first_item_per_order.values(), times, strict=True)
     ]
     insert_orders_for_order_items(conn, rows, reference.sources.customer_ids[0])
-    copy_rows(conn, "order_item", rows)
+    with historic_load(conn):
+        copy_rows(conn, "order_item", rows)
     return rows

@@ -1,9 +1,12 @@
 """Write generated rows into Postgres, and read back what new orders can point to."""
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager
+from typing import Literal
 
 import psycopg
 from psycopg import sql
+from psycopg.pq import TransactionStatus
 
 from dataforge.domain.enums import OrderStatus
 from dataforge.generator.data.orders import OrderSources, StockedOffer
@@ -18,6 +21,40 @@ def is_empty(conn: psycopg.Connection) -> bool:
     )
     row = conn.execute(sql.SQL("SELECT {}").format(checks)).fetchone()
     return bool(row and row[0])
+
+
+@contextmanager
+def historic_load(conn: psycopg.Connection) -> Iterator[None]:
+    """Rows written inside keep the `updated_at` they bring, instead of the database's now().
+
+    For seeding a history and for tests only; normal writes never use it. It switches off the
+    `set_updated_at` triggers for the current transaction, which locks those tables until it ends.
+    """
+    if conn.autocommit:
+        # Each ALTER would commit on its own and switch the triggers off for every session.
+        raise ValueError("historic_load needs a transaction, not an autocommit connection")
+    triggers = conn.execute(
+        "SELECT DISTINCT event_object_table, trigger_name FROM information_schema.triggers "
+        "WHERE trigger_schema = 'public' AND action_statement = 'EXECUTE FUNCTION set_updated_at()'"
+    ).fetchall()
+    _set_triggers(conn, triggers, "DISABLE")
+    try:
+        yield
+    finally:
+        # After a database error the transaction can only roll back, which re-enables them anyway.
+        if conn.info.transaction_status != TransactionStatus.INERROR:
+            _set_triggers(conn, triggers, "ENABLE")
+
+
+def _set_triggers(
+    conn: psycopg.Connection, triggers: list[tuple[str, str]], action: Literal["DISABLE", "ENABLE"]
+) -> None:
+    for table, trigger in triggers:
+        conn.execute(
+            sql.SQL("ALTER TABLE {} {} TRIGGER {}").format(
+                sql.Identifier(table), sql.SQL(action), sql.Identifier(trigger)
+            )
+        )
 
 
 def load_reference(conn: psycopg.Connection, reference: ReferenceData) -> None:

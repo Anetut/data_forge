@@ -11,3 +11,6 @@
 9. **UUIDv7 whenever possible**. Faster indexing and processing. v7 IDs are time-ordered, so new rows go to the end of the index instead of random pages
 10. **UUIDs as strings** - 8 reversed after finding out that Delta keeps no statistics on binary columns and liquid clustering can't use them, so file skipping wouldn't be possible with binary UUIDs
 11. **Buffer time before watermark for extraction** - there can be late arriving transactions happening after changes were extracted but with an older timestamp. A couple of minutes (10) of buffer is a decent tradeoff for this
+12. **Add db migration with Flyway** -  plain SQL files, runs as a Docker container, no extra Python dependency. Data must survive when schema changes. Migrations are never edited once applied, the test db is rebuilt from the migrations on every test run
+13. **Update trigger that sets updated_at as now() on every table insert** - creating or updating rows with an outdated updated_at could lead to data loss when extracting the next set (see findings extraction test)
+14. **Add user roles** - since generator needs to simulate orders from before it needs to overwrite the updated_at, which is done by using historic_load that disables the updated_at trigger. This leads to implementing user roles that would make altering the table impossible for the application (TODO)

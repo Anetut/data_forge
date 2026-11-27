@@ -6,7 +6,7 @@ from datetime import timedelta
 from dataforge.generator.data.orders import build_orders
 from dataforge.generator.data.reference import build_reference
 from dataforge.generator.database.activity import simulate_activity
-from dataforge.generator.database.loading import copy_rows
+from dataforge.generator.database.loading import copy_rows, historic_load
 from mock_data_helpers import insert_reference_data_with_unique_emails
 
 
@@ -38,3 +38,22 @@ def test_activity_changes_rows_through_the_trigger(conn, now, small_volumes):
         "SELECT count(*) FROM order_item WHERE updated_at = %s", (started[0],)
     ).fetchone()
     assert touched is not None and touched[0] > 0
+
+
+def _insert_manager_returning_updated_at(conn, email, updated_at):
+    row = conn.execute(
+        "INSERT INTO manager (name, email, hire_date, updated_at) "
+        "VALUES ('Historic Test', %s, current_date, %s) RETURNING updated_at",
+        (email, updated_at),
+    ).fetchone()
+    assert row is not None
+    return row[0]
+
+
+def test_historic_load_keeps_updated_at_only_inside_the_block(conn, now):
+    last_week = now - timedelta(days=7)
+    with historic_load(conn):
+        kept = _insert_manager_returning_updated_at(conn, "historic-in@example.com", last_week)
+    after = _insert_manager_returning_updated_at(conn, "historic-out@example.com", last_week)
+    assert kept == last_week
+    assert after != last_week  # the triggers are back on after the block

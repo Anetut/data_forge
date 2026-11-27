@@ -37,7 +37,13 @@ from dataforge.db import connect
 from dataforge.generator.data.orders import build_orders
 from dataforge.generator.data.reference import Volumes, build_reference
 from dataforge.generator.database.activity import simulate_activity
-from dataforge.generator.database.loading import copy_rows, is_empty, load_reference, read_sources
+from dataforge.generator.database.loading import (
+    copy_rows,
+    historic_load,
+    is_empty,
+    load_reference,
+    read_sources,
+)
 from dataforge.generator.partner_feed import build_feed, write_feed
 from dataforge.generator.partner_feed.issues import DEFAULT_ISSUE_RATE
 from dataforge.paths import FEEDS_DIR
@@ -122,11 +128,13 @@ def _run_fill_db(
     if not is_empty(conn):
         raise SystemExit("Database is not empty. Recreate it: docker compose down -v && up -d")
     reference = build_reference(rand_gen, Volumes().scaled(args.scale), before=now - HISTORY)
-    load_reference(conn, reference)
     order_count = round(args.orders * args.scale)
     orders, items = build_orders(rand_gen, reference.sources, order_count, now - HISTORY, now)
-    copy_rows(conn, "orders", orders)
-    copy_rows(conn, "order_item", [dict(item) for item in items])
+    # Two years of history keep their own updated_at, as an import from an older system would.
+    with historic_load(conn):
+        load_reference(conn, reference)
+        copy_rows(conn, "orders", orders)
+        copy_rows(conn, "order_item", [dict(item) for item in items])
     tables = {name: len(rows) for name, rows in reference.tables.items()}
     _report(tables | {"orders": len(orders), "order_item": len(items)})
 

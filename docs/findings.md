@@ -82,10 +82,10 @@ Same test environment, 1 000 000 rows (first generator, random v4 IDs, not re-ru
 
 - Querying the ids from initial file which do not exist into the table returned 5 rows (the ones who got deleted without a trace), so the files do not show any logs about it
 
-- 181 of the 746 new rows had an updated_at older than the first watermark (22:23:10 to 22:30:06). They were inserted after the first extract, but the generator wrote their simulated business time into updated_at, and the trigger only set it on UPDATE. Only the lookback caught them (oldest one about 2.5 minutes inside the window); `updated_at > watermark` alone would have skipped them silently.
+- 181 of the 746 new rows had an updated_at older than the first watermark (22:23:10 to 22:30:06). They were inserted after the first extract, but the generator wrote their simulated business time into updated_at, and the trigger only set it on UPDATE. Only the lookback caught them (oldest one about 2.5 minutes inside the window); `updated_at > watermark` alone would have skipped them silently. (Leads to decision 13)
 
 **Conclusion:**
 
 - Hard deletes are invisible to an `updated_at` watermark: downstream the 5 rows stay as if they still existed.
 - The lookback costs a few duplicates (14) and saved 181 rows here.
-- `updated_at` is only reliable if the database sets it on insert as well as on update.
+- `updated_at` is only reliable if the database sets it on insert as well as on update. (Fixed by V2 migration - trigger that also fires on INSERT (decision 13))
